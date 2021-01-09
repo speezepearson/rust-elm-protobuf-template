@@ -1,0 +1,14 @@
+<html>
+  <head>
+    <script src="/static/Main.js"></script>
+  </head>
+  <body>
+    <div id="main"></div>
+    <script type="text/javascript">
+      Elm.Main.init({
+        node: document.getElementById("main"),
+        flags: {person: {{ person_proto | json_encode() | safe }} },
+      })
+    </script>
+  </body>
+</html>
