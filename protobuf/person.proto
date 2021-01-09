@@ -6,3 +6,13 @@ message Person {
     string name = 1;
     uint32 age = 2;
 }
+
+message GetPersonRequest {}
+
+message GetPersonResponse {
+    Person person = 1;
+}
+
+message AgePersonRequest {}
+
+message AgePersonResponse {}

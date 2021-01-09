@@ -1,3 +1,4 @@
 /target
 src/protobuf
 elm/protobuf
+static/Main.js
