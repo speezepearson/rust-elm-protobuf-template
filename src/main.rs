@@ -17,7 +17,6 @@ async fn get_index(state: web::Data<AppState>) -> HttpResponse {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    println!("Hello, world!");
     let state = web::Data::new(AppState {
         tera: match tera::Tera::new("templates/*.html") {
             Ok(t) => { t }
@@ -25,7 +24,6 @@ async fn main() -> std::io::Result<()> {
         },
     });
     HttpServer::new(move || {
-        println!("in HttpServer closure");
         App::new()
             .app_data(state.clone())
             .route("/", web::get().to(get_index))
