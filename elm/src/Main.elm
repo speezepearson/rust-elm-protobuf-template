@@ -4,10 +4,15 @@ import Browser
 import Html as H
 import Json.Decode as JD
 
+import Base64
+import Protobuf.Decode as PBD
+import Protobuf.Person as PersonPb
+
+
 -- MODEL
 
 type alias Model =
-  { person : Maybe String
+  { person : Maybe PersonPb.Person
   }
 
 type Msg = Noop
@@ -22,11 +27,17 @@ main = Browser.element
   , subscriptions = \_ -> Sub.none
   }
 
-flagsDecoder : JD.Decoder { person : Maybe String }
+parseB64Person : String -> Maybe PersonPb.Person
+parseB64Person s =
+  s
+  |> Base64.toBytes
+  |> Maybe.andThen (PBD.decode PersonPb.personDecoder)
+
+flagsDecoder : JD.Decoder { person : Maybe PersonPb.Person }
 flagsDecoder =
   JD.map
     (\s -> { person = s })
-    (JD.field "person" <| JD.nullable JD.string)
+    (JD.field "person_proto_b64" <| JD.map parseB64Person JD.string)
 
 init : JD.Value -> ( Model , Cmd Msg )
 init flagsJson =

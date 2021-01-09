@@ -7,7 +7,7 @@
     <script type="text/javascript">
       Elm.Main.init({
         node: document.getElementById("main"),
-        flags: {person: {{ person_proto | json_encode() | safe }} },
+        flags: {person_proto_b64: {{ person_proto_b64 | json_encode() | safe }} },
       })
     </script>
   </body>

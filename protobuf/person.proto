@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package protobuf.person;
+
 message Person {
     string name = 1;
     uint32 age = 2;
