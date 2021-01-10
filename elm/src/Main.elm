@@ -20,9 +20,7 @@ type alias Model =
   }
 
 type Msg
-  = FetchPerson
-  | FetchedPerson (Result Http.Error PersonPb.GetPersonResponse)
-  | AgePerson
+  = AgePerson
   | AgedPerson (Result Http.Error PersonPb.AgePersonResponse)
 
 
@@ -64,50 +62,29 @@ view model =
   H.div []
     [ H.text <| Debug.toString model
     , H.br [] []
-    , H.button [HE.onClick FetchPerson] [H.text "Refresh"]
-    , H.text " "
     , H.button [HE.onClick AgePerson] [H.text "Age"]
     ]
 
-type alias Endpoint req resp = { url : String , toEncoder : req -> PBE.Encoder , decoder : PBD.Decoder resp }
-getPerson = { url = "/api/get_person" , toEncoder = PersonPb.toGetPersonRequestEncoder , decoder = PersonPb.getPersonResponseDecoder }
-agePerson = { url = "/api/age_person" , toEncoder = PersonPb.toAgePersonRequestEncoder , decoder = PersonPb.agePersonResponseDecoder }
-
-hitEndpoint : Endpoint req resp -> (Result Http.Error resp -> msg) -> req -> Cmd msg
-hitEndpoint endpoint toMsg req =
+agePerson : PersonPb.AgePersonRequest -> Cmd Msg
+agePerson req =
   Http.post
-    { url = endpoint.url
-    , body = endpoint.toEncoder req |> PBE.encode |> Http.bytesBody "application/octet-stream"
-    , expect = PBD.expectBytes toMsg endpoint.decoder
+    { url = "/api/age_person"
+    , body = req |> PersonPb.toAgePersonRequestEncoder |> PBE.encode |> Http.bytesBody "application/octet-stream"
+    , expect = PBD.expectBytes AgedPerson PersonPb.agePersonResponseDecoder
     }
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
 
-    FetchPerson ->
-      ( { model | working = True }
-      , hitEndpoint getPerson FetchedPerson {}
-      )
-
-    FetchedPerson (Ok resp) ->
-      ( { model | working = False, person = resp.person }
-      , Cmd.none
-      )
-
-    FetchedPerson (Err e) -> Debug.log ("error fetching person: " ++ Debug.toString e)
-      ( { model | working = False, person = Nothing }
-      , Cmd.none
-      )
-
     AgePerson ->
       ( { model | working = True }
-      , hitEndpoint agePerson AgedPerson {delta=1}
+      , agePerson {delta=1}
       )
 
     AgedPerson (Ok resp) ->
-      ( { model | working = False }
-      , hitEndpoint getPerson FetchedPerson {}
+      ( { model | person = resp.newPerson , working = False }
+      , Cmd.none
       )
 
     AgedPerson (Err e) -> Debug.log ("error aging person: " ++ Debug.toString e)

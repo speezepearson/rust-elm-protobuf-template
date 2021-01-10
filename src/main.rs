@@ -2,7 +2,7 @@ use actix_web::{App, HttpServer, HttpResponse, web};
 use ::protobuf::Message;
 
 mod protobuf;
-use crate::protobuf::person::{Person, AgePersonRequest, AgePersonResponse, GetPersonRequest, GetPersonResponse};
+use crate::protobuf::person::{Person, AgePersonRequest, AgePersonResponse};
 
 struct AppState {
     tera: tera::Tera,
@@ -23,19 +23,8 @@ async fn get_index(state: web::Data<AppState>) -> HttpResponse {
 fn parse_or_400<M: Message>(bytes: web::Bytes) -> Result<M, HttpResponse> {
     match Message::parse_from_bytes(&bytes.to_vec()) {
         Ok(r) => { Ok(r) }
-        Err(e) => { println!("unable to parse protobuf in AgePersonRequest: {:?}", e); Err(HttpResponse::BadRequest().finish()) }
+        Err(e) => { println!("unable to parse protobuf: {:?}", e); Err(HttpResponse::BadRequest().finish()) }
     }
-}
-
-async fn api_get_person(state: web::Data<AppState>, payload: web::Bytes) -> Result<HttpResponse, HttpResponse> {
-    let _req = parse_or_400::<GetPersonRequest>(payload)?;
-    Ok(HttpResponse::Ok()
-        .header("Content-Type", "application/octet-stream")
-        .body({
-            let mut resp = GetPersonResponse::new();
-            resp.set_person(state.person.lock().unwrap().clone());
-            resp
-        }.write_to_bytes().unwrap()))
 }
 
 async fn api_age_person(state: web::Data<AppState>, payload: web::Bytes) -> Result<HttpResponse, HttpResponse> {
@@ -44,7 +33,11 @@ async fn api_age_person(state: web::Data<AppState>, payload: web::Bytes) -> Resu
     person.age = person.age + req.delta;
     Ok(HttpResponse::Ok()
         .header("Content-Type", "application/octet-stream")
-        .body(AgePersonResponse::new().write_to_bytes().unwrap()))
+        .body({
+            let mut resp = AgePersonResponse::new();
+            resp.set_new_person(person.clone());
+            resp
+        }.write_to_bytes().unwrap()))
 }
 
 #[actix_web::main]
@@ -65,7 +58,6 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .app_data(state.clone())
             .route("/", web::get().to(get_index))
-            .route("/api/get_person", web::post().to(api_get_person))
             .route("/api/age_person", web::post().to(api_age_person))
             .service(actix_files::Files::new("/static", "./static/"))
     })

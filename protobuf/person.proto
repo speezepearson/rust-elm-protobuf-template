@@ -7,14 +7,10 @@ message Person {
     uint32 age = 2;
 }
 
-message GetPersonRequest {}
-
-message GetPersonResponse {
-    Person person = 1;
-}
-
 message AgePersonRequest {
     uint32 delta = 1;
 }
 
-message AgePersonResponse {}
+message AgePersonResponse {
+    Person new_person = 1;
+}
