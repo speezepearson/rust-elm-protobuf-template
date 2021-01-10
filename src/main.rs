@@ -20,33 +20,31 @@ async fn get_index(state: web::Data<AppState>) -> HttpResponse {
         .body(rendered)
 }
 
-macro_rules! parse_or_400 {
-    ($payload:tt) => {
-        match ::protobuf::Message::parse_from_bytes(&$payload.to_vec()) {
-            Ok(r) => { r }
-            Err(e) => { println!("unable to parse protobuf in AgePersonRequest: {:?}", e); return HttpResponse::BadRequest().finish(); }
-        }
-    };
+fn parse_or_400<M: Message>(bytes: web::Bytes) -> Result<M, HttpResponse> {
+    match Message::parse_from_bytes(&bytes.to_vec()) {
+        Ok(r) => { Ok(r) }
+        Err(e) => { println!("unable to parse protobuf in AgePersonRequest: {:?}", e); Err(HttpResponse::BadRequest().finish()) }
+    }
 }
 
-async fn api_get_person(state: web::Data<AppState>, payload: web::Bytes) -> HttpResponse {
-    let _req: GetPersonRequest = parse_or_400!(payload);
-    HttpResponse::Ok()
+async fn api_get_person(state: web::Data<AppState>, payload: web::Bytes) -> Result<HttpResponse, HttpResponse> {
+    let _req = parse_or_400::<GetPersonRequest>(payload)?;
+    Ok(HttpResponse::Ok()
         .header("Content-Type", "application/octet-stream")
         .body({
             let mut resp = GetPersonResponse::new();
             resp.set_person(state.person.lock().unwrap().clone());
             resp
-        }.write_to_bytes().unwrap())
+        }.write_to_bytes().unwrap()))
 }
 
-async fn api_age_person(state: web::Data<AppState>, payload: web::Bytes) -> HttpResponse {
-    let req: AgePersonRequest = parse_or_400!(payload);
+async fn api_age_person(state: web::Data<AppState>, payload: web::Bytes) -> Result<HttpResponse, HttpResponse> {
+    let req = parse_or_400::<AgePersonRequest>(payload)?;
     let mut person = state.person.lock().unwrap();
     person.age = person.age + req.delta;
-    HttpResponse::Ok()
+    Ok(HttpResponse::Ok()
         .header("Content-Type", "application/octet-stream")
-        .body(AgePersonResponse::new().write_to_bytes().unwrap())
+        .body(AgePersonResponse::new().write_to_bytes().unwrap()))
 }
 
 #[actix_web::main]
