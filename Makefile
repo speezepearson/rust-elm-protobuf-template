@@ -4,7 +4,8 @@ build : protos src/Main.js
 run : build
 	cargo run
 
-src/Main.js : elm/src/Main.elm
+static/Main.js : elm/src/Main.elm
+	mkdir -p static/
 	cd elm && elm make src/Main.elm --output ../static/Main.js
 
 protos :
