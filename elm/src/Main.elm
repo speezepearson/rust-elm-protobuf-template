@@ -69,20 +69,16 @@ view model =
     , H.button [HE.onClick AgePerson] [H.text "Age"]
     ]
 
-getPerson : Cmd Msg
-getPerson =
-  Http.post
-    { url = "/api/get_person"
-    , body = PersonPb.GetPersonRequest |> PersonPb.toGetPersonRequestEncoder |> PBE.encode |> Http.bytesBody "application/octet-stream"
-    , expect = PBD.expectBytes FetchedPerson PersonPb.getPersonResponseDecoder
-    }
+type alias Endpoint req resp = { url : String , toEncoder : req -> PBE.Encoder , decoder : PBD.Decoder resp }
+getPerson = { url = "/api/get_person" , toEncoder = PersonPb.toGetPersonRequestEncoder , decoder = PersonPb.getPersonResponseDecoder }
+agePerson = { url = "/api/age_person" , toEncoder = PersonPb.toAgePersonRequestEncoder , decoder = PersonPb.agePersonResponseDecoder }
 
-agePerson : Cmd Msg
-agePerson =
+hitEndpoint : Endpoint req resp -> (Result Http.Error resp -> msg) -> req -> Cmd msg
+hitEndpoint endpoint toMsg req =
   Http.post
-    { url = "/api/age_person"
-    , body = PersonPb.AgePersonRequest |> PersonPb.toAgePersonRequestEncoder |> PBE.encode |> Http.bytesBody "application/octet-stream"
-    , expect = PBD.expectBytes AgedPerson PersonPb.agePersonResponseDecoder
+    { url = endpoint.url
+    , body = endpoint.toEncoder req |> PBE.encode |> Http.bytesBody "application/octet-stream"
+    , expect = PBD.expectBytes toMsg endpoint.decoder
     }
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -91,7 +87,7 @@ update msg model =
 
     FetchPerson ->
       ( { model | working = True }
-      , getPerson
+      , hitEndpoint getPerson FetchedPerson {}
       )
 
     FetchedPerson (Ok resp) ->
@@ -106,12 +102,12 @@ update msg model =
 
     AgePerson ->
       ( { model | working = True }
-      , agePerson
+      , hitEndpoint agePerson AgedPerson {delta=1}
       )
 
     AgedPerson (Ok resp) ->
       ( { model | working = False }
-      , getPerson
+      , hitEndpoint getPerson FetchedPerson {}
       )
 
     AgedPerson (Err e) -> Debug.log ("error aging person: " ++ Debug.toString e)
